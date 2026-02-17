@@ -1,0 +1,44 @@
+<!-- templates/dashboard.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Predictions Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <h1>Recent AI Predictions</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Symptoms</th>
+                <th>Condition</th>
+                <th>Severity</th>
+                <th>Predicted Medicine</th>
+                <th>Dosage</th>
+                <th>Cost</th>
+                <th>Generic</th>
+                <th>Confidence</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>{{ log.timestamp }}</td>
+                <td>{{ log.symptoms }}</td>
+                <td>{{ log.condition }}</td>
+                <td>{{ log.severity }}</td>
+                <td>{{ log.predicted_medicine }}</td>
+                <td>{{ log.predicted_dosage }}</td>
+                <td>{{ log.predicted_cost }}</td>
+                <td>{{ 'Yes' if log.is_generic else 'No' }}</td>
+                <td>{{ '{:.0%}'.format(log.confidence) if log.confidence else '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="/dashboard/top-medicines">🔝 View Top Recommended Medicines</a>
+</body>
+</html>

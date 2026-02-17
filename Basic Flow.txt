@@ -1,0 +1,31 @@
+Doctor Input → Parse Case Details → Get Recommended Medicines → Apply Cost Filter & Safety Checks → Return Structured Response
+
+Password:<remove-from-version-control>
+
+AI MODEL STRUCTURE
+evolve/
+│
+├── app/
+│   ├── main.py              # FastAPI app entry point
+│   ├── model.py             # ML model loading, prediction logic
+│   ├── schemas.py           # Pydantic models
+│   ├── utils.py             # Optional: data preprocessing, etc.
+│
+├── requirements.txt         # Dependencies
+├── Dockerfile               # Optional: for containerization
+└── README.md
+
+STRUCTURE
+theriax/
+│
+├── evolve/                  # AI microservice (separate FastAPI app)
+│   ├── model.py             # ML training + prediction logic
+│   ├── evolve_api.py        # FastAPI routes for prediction
+│   ├── dummy_data.csv       # Dummy dataset
+│   └── train_model.py       # Training script
+│
+├── main_backend/            # Your current backend
+│   └── Backend11.py         # Theriax backend with login + medicine routes
+│
+├── database.py
+└── .env

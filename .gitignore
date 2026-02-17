@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+
+# Local artifacts
+.dist/
+dist/
+desktop.ini
+*.log
+
+# Model artifacts
+*.pkl
+*.zip
+evolve/model_files/
+model_files/
+
+# Node
+node_modules/
+theriax-frontend/node_modules/
+theriax-frontend/dist/
