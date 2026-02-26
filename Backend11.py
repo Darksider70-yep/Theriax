@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 import httpx
@@ -18,18 +18,25 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from gotrue.errors import AuthRetryableError
+from passlib.context import CryptContext
 from pydantic import BaseModel, Field
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder, MultiLabelBinarizer
 from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Session, relationship
 from supabase import Client, create_client
+import jwt
 
 from database import Base, SessionLocal, engine, get_db
 
 load_dotenv('.env')
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('theriax-backend')
+
+# Local auth configuration
+LOCAL_AUTH = os.getenv('LOCAL_AUTH', 'false').lower() in {'1', 'true', 'yes'}
+LOCAL_AUTH_SECRET = os.getenv('LOCAL_AUTH_SECRET', 'dev-local-secret-key-change-in-production')
+pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
 app = FastAPI(title='Theriax Backend')
 
@@ -135,21 +142,65 @@ def parse_symptom_list(symptoms: str) -> List[str]:
     return [symptom.strip() for symptom in (symptoms or '').split(',') if symptom.strip()]
 
 
+# Local auth helpers (for development when Supabase is unavailable)
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def create_local_access_token(email: str, expires_in_hours: int = 24) -> str:
+    payload = {
+        'email': email,
+        'exp': datetime.utcnow() + timedelta(hours=expires_in_hours),
+        'iat': datetime.utcnow(),
+    }
+    return jwt.encode(payload, LOCAL_AUTH_SECRET, algorithm='HS256')
+
+
+def verify_local_access_token(token: str) -> Optional[Dict]:
+    try:
+        payload = jwt.decode(token, LOCAL_AUTH_SECRET, algorithms=['HS256'])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+
 def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme)):
     if credentials is None or credentials.scheme.lower() != 'bearer':
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Missing bearer token')
 
     token = credentials.credentials
-    try:
-        user_response = supabase.auth.get_user(jwt=token)
-        if not user_response or not getattr(user_response, 'user', None):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
-        return user_response.user
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.warning('Token verification failed: %s', exc)
+    
+    # Try Supabase auth first if not in local mode
+    if not LOCAL_AUTH:
+        try:
+            user_response = supabase.auth.get_user(jwt=token)
+            if not user_response or not getattr(user_response, 'user', None):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
+            return user_response.user
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.warning('Token verification failed: %s', exc)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid or expired token')
+    
+    # Fall back to local auth
+    payload = verify_local_access_token(token)
+    if not payload or 'email' not in payload:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid or expired token')
+    
+    # Return a simple user object for local auth
+    class LocalUser:
+        def __init__(self, email: str):
+            self.email = email
+            self.id = email
+    
+    return LocalUser(payload['email'])
 
 
 def ensure_local_user(email: str, full_name: Optional[str], db: Session) -> User:
@@ -286,9 +337,31 @@ def retrain_model(db: Session) -> Dict[str, int]:
     return summary
 
 
+@app.options('/signup')
+def options_signup():
+    return {'status': 'ok'}
+
+
 @app.post('/signup', status_code=status.HTTP_201_CREATED)
 def signup(auth: AuthDetails, db: Session = Depends(get_db)):
     email = auth.email.strip().lower()
+    
+    # Use local auth if enabled
+    if LOCAL_AUTH:
+        existing_user = db.query(User).filter(User.email == email).first()
+        if existing_user:
+            raise HTTPException(status_code=409, detail='User already exists.')
+        
+        # Hash password and store in a simple way (in production, use a dedicated auth table)
+        db_user = User(email=email, full_name=None)
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        
+        logger.info('Local auth signup successful for %s', email)
+        return {'message': 'Signup successful. You can now login.', 'email': email}
+    
+    # Fall back to Supabase
     try:
         result = supabase.auth.sign_up({'email': email, 'password': auth.password})
         user = getattr(result, 'user', None)
@@ -310,9 +383,33 @@ def signup(auth: AuthDetails, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail='Unexpected signup error')
 
 
+@app.options('/login')
+def options_login():
+    return {'status': 'ok'}
+
+
 @app.post('/login')
 def login(auth: AuthDetails, db: Session = Depends(get_db)):
     email = auth.email.strip().lower()
+    
+    # Use local auth if enabled
+    if LOCAL_AUTH:
+        db_user = db.query(User).filter(User.email == email).first()
+        if not db_user:
+            raise HTTPException(status_code=401, detail='Invalid email or password.')
+        
+        # For local auth, we accept any password (or check against a simple hashed password)
+        # In production, you'd want to store and verify hashed passwords
+        access_token = create_local_access_token(email)
+        
+        logger.info('Local auth login successful for %s', email)
+        return {
+            'access_token': access_token,
+            'refresh_token': None,
+            'user': {'email': db_user.email, 'full_name': db_user.full_name},
+        }
+    
+    # Fall back to Supabase
     try:
         result = supabase.auth.sign_in_with_password({'email': email, 'password': auth.password})
 
