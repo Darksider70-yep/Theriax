@@ -16,6 +16,14 @@ import api from "../utils/api";
 
 const MotionTr = motion.tr;
 
+// Icons for stats
+const statIcons = {
+  predictions: "📊",
+  confidence: "✨",
+  severity: "⚠️",
+  conditions: "🔍",
+};
+
 function toSeverityClass(severity) {
   const level = (severity || "").toLowerCase();
   if (level === "high") return "theriax-pill theriax-pill-high";
@@ -95,22 +103,30 @@ export default function Dashboard() {
       {
         label: "Total Predictions",
         value: logs.length.toLocaleString(),
-        tone: "from-teal-500/20 to-teal-700/15",
+        tone: "from-primary-500/25 to-primary-700/15",
+        icon: statIcons.predictions,
+        color: "primary",
       },
       {
         label: "Average Confidence",
         value: avgConfidence === null ? "N/A" : `${avgConfidence.toFixed(1)}%`,
-        tone: "from-amber-500/20 to-orange-700/15",
+        tone: "from-secondary-500/25 to-secondary-700/15",
+        icon: statIcons.confidence,
+        color: "secondary",
       },
       {
         label: "High Severity Cases",
         value: highSeverityCount.toLocaleString(),
-        tone: "from-red-500/20 to-rose-700/15",
+        tone: "from-red-500/25 to-red-700/15",
+        icon: statIcons.severity,
+        color: "danger",
       },
       {
         label: "Unique Conditions",
         value: uniqueConditions.toLocaleString(),
-        tone: "from-cyan-500/20 to-sky-700/15",
+        tone: "from-tertiary-500/25 to-tertiary-700/15",
+        icon: statIcons.conditions,
+        color: "tertiary",
       },
     ];
   }, [logs]);
@@ -136,9 +152,11 @@ export default function Dashboard() {
         title="Dashboard Overview"
         subtitle="Loading your latest model activity and recommendation logs."
       >
-        <Card>
-          <p className="theriax-muted text-sm">Loading dashboard data...</p>
-        </Card>
+        <div className="space-y-6">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="h-24 bg-gradient-to-r from-gray-200 to-gray-100 rounded-16 animate-pulse"></div>
+          ))}
+        </div>
       </WorkspaceShell>
     );
   }
@@ -154,37 +172,72 @@ export default function Dashboard() {
     );
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+  };
+
   return (
     <WorkspaceShell
       title="Dashboard Overview"
       subtitle="Track recommendation quality, medicine trends, and recent case outcomes in one view."
     >
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* Background Enhancement Layer */}
+      <div className="fixed -inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-gradient-to-bl from-primary-300/10 to-transparent rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-1/4 left-0 w-80 h-80 bg-gradient-to-tr from-secondary-300/10 to-transparent rounded-full blur-3xl animate-float" style={{ animationDelay: "2s" }}></div>
+      </div>
+      <motion.section
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4"
+      >
         {stats.map((stat, index) => (
           <motion.article
             key={stat.label}
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.06, duration: 0.3 }}
-            className="theriax-surface p-5"
+            variants={itemVariants}
+            whileHover={{ translateY: -4 }}
+            className="theriax-stat-card theriax-surface-glow p-6 group cursor-pointer"
           >
-            <div className={`mb-3 h-2 w-16 rounded-full bg-gradient-to-r ${stat.tone}`} />
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{stat.label}</p>
-            <p className="theriax-display mt-2 text-2xl font-extrabold text-slate-900">{stat.value}</p>
+            <div className="theriax-stat-card-content">
+              <div className="flex items-start justify-between mb-3">
+                <div className={`h-12 w-12 rounded-12 bg-gradient-to-br ${stat.tone} flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300`}>
+                  {stat.icon}
+                </div>
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 mb-1">{stat.label}</p>
+              <p className="theriax-display text-3xl font-extrabold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">{stat.value}</p>
+            </div>
           </motion.article>
         ))}
-      </section>
+      </motion.section>
 
       <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.18, duration: 0.35 }}
+        variants={itemVariants}
+        initial="hidden"
+        animate="show"
+        transition={{ delay: 0.3 }}
       >
-        <Card title="Top Prescribed Medicines" subtitle="Frequency of model recommendations by medicine">
+        <Card title="📊 Top Prescribed Medicines" subtitle="Most frequently recommended medicines by the AI model" variant="glow">
           <div className="h-[330px]">
             {topMeds.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={topMeds} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="rgb(15, 118, 110)" stopOpacity={0.8} />
+                      <stop offset="100%" stopColor="rgb(15, 93, 85)" stopOpacity={0.6} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(19, 36, 54, 0.12)" />
                   <XAxis
                     dataKey="medicine"
@@ -202,12 +255,13 @@ export default function Dashboard() {
                     cursor={{ fill: "rgba(15, 118, 110, 0.08)" }}
                     contentStyle={{
                       borderRadius: "12px",
-                      border: "1px solid rgba(19, 36, 54, 0.14)",
-                      backgroundColor: "rgba(255, 255, 255, 0.96)",
-                      boxShadow: "0 12px 30px rgba(10, 34, 51, 0.13)",
+                      border: "2px solid rgba(15, 118, 110, 0.3)",
+                      backgroundColor: "rgba(255, 255, 255, 0.98)",
+                      boxShadow: "0 12px 30px rgba(10, 34, 51, 0.15)",
                     }}
+                    labelStyle={{ color: "#132436" }}
                   />
-                  <Bar dataKey="count" fill="#0f766e" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="count" fill="url(#colorBar)" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -220,32 +274,42 @@ export default function Dashboard() {
       </motion.section>
 
       <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.24, duration: 0.35 }}
+        variants={itemVariants}
+        initial="hidden"
+        animate="show"
+        transition={{ delay: 0.4 }}
       >
         <Card
-          title="Recent AI Recommendations"
+          title="🔬 Recent AI Recommendations"
           subtitle="Most recent prediction logs with confidence and severity context"
         >
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <p className="theriax-muted text-sm">
-              Showing {Math.min(visibleCount, logs.length)} of {logs.length} entries
+              <span className="font-semibold text-primary-700">{Math.min(visibleCount, logs.length)}</span> of <span className="font-semibold text-slate-900">{logs.length}</span> entries
             </p>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               type="button"
               onClick={handleOpenSearch}
               disabled={searching}
-              className="theriax-btn theriax-btn-primary px-4 py-2 text-sm"
+              className="theriax-btn theriax-btn-primary px-5 py-2.5 text-sm group"
             >
-              {searching ? "Opening..." : "Open AI Search"}
-            </button>
+              <span>⚡</span>
+              <span>{searching ? "Opening..." : "Open AI Search"}</span>
+              <span className="group-hover:translate-x-1 transition-transform">→</span>
+            </motion.button>
           </div>
 
           {logs.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-300 bg-white/65 p-6 text-center">
-              <p className="theriax-muted text-sm">No recommendations logged yet.</p>
-            </div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="rounded-xl border-2 border-dashed border-primary-300/50 bg-gradient-to-br from-primary-50/50 to-secondary-50/30 p-12 text-center"
+            >
+              <p className="text-2xl mb-2">📋</p>
+              <p className="theriax-muted text-sm">No recommendations logged yet. Start by using AI Search to generate predictions.</p>
+            </motion.div>
           ) : (
             <>
               <div className="theriax-scroll">
@@ -269,17 +333,20 @@ export default function Dashboard() {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -6 }}
                           transition={{ duration: 0.22 }}
+                          className="hover:bg-primary-50/40 transition-all"
                         >
-                          <td>{log.condition || "N/A"}</td>
-                          <td className="max-w-[260px] truncate" title={log.symptoms || "N/A"}>
+                          <td className="font-medium text-slate-900">{log.condition || "N/A"}</td>
+                          <td className="max-w-[260px] truncate text-slate-700" title={log.symptoms || "N/A"}>
                             {log.symptoms || "N/A"}
                           </td>
-                          <td>{log.predicted_medicine || log.medicine || "N/A"}</td>
+                          <td className="font-semibold text-primary-700">{log.predicted_medicine || log.medicine || "N/A"}</td>
                           <td>
                             <span className={toSeverityClass(log.severity)}>{log.severity || "low"}</span>
                           </td>
-                          <td>{formatConfidence(log.confidence)}</td>
-                          <td>{formatTimestamp(log.timestamp)}</td>
+                          <td>
+                            <span className="text-sm font-semibold text-secondary-700">{formatConfidence(log.confidence)}</span>
+                          </td>
+                          <td className="text-xs text-slate-500">{formatTimestamp(log.timestamp)}</td>
                         </MotionTr>
                       ))}
                     </AnimatePresence>
@@ -288,16 +355,22 @@ export default function Dashboard() {
               </div>
 
               {visibleCount < logs.length && (
-                <div className="mt-4 text-center">
-                  <button
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mt-6 text-center"
+                >
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={handleLoadMore}
                     disabled={loadingMore}
-                    className="theriax-btn theriax-btn-ghost px-4 py-2 text-sm"
+                    className="theriax-btn theriax-btn-ghost px-6 py-2.5 text-sm"
                   >
-                    {loadingMore ? "Loading..." : "Load More"}
-                  </button>
-                </div>
+                    {loadingMore ? "⏳ Loading..." : "📥 Load More Entries"}
+                  </motion.button>
+                </motion.div>
               )}
             </>
           )}

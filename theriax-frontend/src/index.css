@@ -21,6 +21,9 @@
   --ring: rgba(15, 118, 110, 0.24);
   --shadow-soft: 0 12px 35px rgba(10, 34, 51, 0.12);
   --shadow-strong: 0 18px 48px rgba(10, 34, 51, 0.18);
+  --gradient-aurora: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
+  --gradient-sunset: linear-gradient(135deg, #f43b47 0%, #453a1f 50%, #ae67fa 100%);
+  --gradient-ocean: linear-gradient(135deg, #0093E9 0%, #80D0C7 100%);
 }
 
 *,
@@ -41,10 +44,14 @@ body {
   color: var(--ink);
   font-family: "Manrope", "Segoe UI", sans-serif;
   background:
-    radial-gradient(circle at 12% 10%, rgba(15, 118, 110, 0.14), transparent 36%),
-    radial-gradient(circle at 90% 12%, rgba(234, 88, 12, 0.14), transparent 34%),
-    linear-gradient(120deg, var(--bg-main) 0%, var(--bg-soft) 45%, var(--bg-alt) 100%);
+    radial-gradient(ellipse at 20% 50%, rgba(15, 118, 110, 0.25), transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.2), transparent 50%),
+    radial-gradient(ellipse at 40% 0%, rgba(242, 122, 26, 0.15), transparent 40%),
+    radial-gradient(ellipse at 0% 100%, rgba(16, 185, 129, 0.1), transparent 50%),
+    linear-gradient(135deg, #edf7f8 0%, #f9fcff 25%, #faf4ea 50%, #f9fcff 75%, #edf7f8 100%);
+  background-attachment: fixed;
   line-height: 1.45;
+  min-height: 100vh;
 }
 
 body::before {
@@ -58,6 +65,7 @@ body::before {
   mask-image: radial-gradient(circle at center, black 44%, transparent 94%);
 }
 
+/* ===== Typography ===== */
 .theriax-display {
   font-family: "Sora", "Segoe UI", sans-serif;
   letter-spacing: -0.02em;
@@ -76,54 +84,95 @@ body::before {
   color: var(--ink-muted);
 }
 
+/* ===== Surfaces & Containers ===== */
 .theriax-surface {
-  background: var(--surface);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(240, 253, 244, 0.5) 50%, rgba(245, 243, 255, 0.4) 100%);
   border: 1px solid var(--border);
   border-radius: 20px;
-  box-shadow: var(--shadow-soft);
-  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+}
+
+.theriax-surface:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-strong), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(240, 253, 244, 0.6) 50%, rgba(245, 243, 255, 0.5) 100%);
 }
 
 .theriax-surface-strong {
-  background: var(--surface-strong);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(240, 250, 250, 0.95) 100%);
+  box-shadow: 0 10px 30px rgba(15, 118, 110, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(15, 118, 110, 0.08);
 }
 
+.theriax-surface-glow {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(34, 197, 94, 0.08) 50%, rgba(139, 92, 246, 0.05) 100%);
+  border: 2px solid rgba(34, 197, 94, 0.4);
+  box-shadow: 0 0 30px rgba(34, 197, 94, 0.15), var(--shadow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* ===== Auth Grid ===== */
 .theriax-auth-grid {
   display: grid;
   grid-template-columns: 1.1fr 1fr;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(15, 118, 110, 0.2);
 }
 
 .theriax-auth-brand {
   position: relative;
   overflow: hidden;
+  background-size: 400% 400%;
+  animation: gradient-shift 12s ease infinite;
+}
+
+.theriax-auth-brand::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.1) 100%);
+  pointer-events: none;
 }
 
 .theriax-auth-brand::after {
   content: "";
   position: absolute;
-  width: 280px;
-  height: 280px;
+  width: 380px;
+  height: 380px;
   border-radius: 999px;
-  right: -92px;
-  bottom: -92px;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.42), transparent 68%);
+  right: -120px;
+  bottom: -120px;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.5), transparent 68%);
+  animation: float 8s ease-in-out infinite;
 }
 
+/* ===== Forms & Inputs ===== */
 .theriax-input {
   width: 100%;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(240, 253, 244, 0.5) 100%);
   padding: 0.78rem 0.92rem;
   color: var(--ink);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .theriax-input:focus {
   outline: none;
   border-color: var(--brand);
-  box-shadow: 0 0 0 4px var(--ring);
-  transform: translateY(-1px);
+  box-shadow: 0 0 0 4px var(--ring), var(--shadow-soft), inset 0 1px 3px rgba(0, 0, 0, 0.02);
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.99) 0%, rgba(240, 253, 244, 0.7) 100%);
+}
+
+.theriax-input:hover:not(:focus) {
+  border-color: rgba(15, 118, 110, 0.4);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.99) 0%, rgba(240, 253, 244, 0.6) 100%);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02), 0 2px 8px rgba(15, 118, 110, 0.05);
 }
 
 .theriax-input::placeholder {
@@ -131,25 +180,28 @@ body::before {
 }
 
 .theriax-input-error {
-  border-color: rgba(220, 38, 38, 0.4);
-  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.6);
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12), inset 0 1px 3px rgba(0, 0, 0, 0.02);
+  background: linear-gradient(135deg, rgba(255, 245, 245, 0.98) 0%, rgba(254, 242, 242, 0.5) 100%);
 }
 
 .theriax-label {
   display: block;
   color: var(--ink);
-  font-size: 0.84rem;
+  font-size: 0.87rem;
   font-weight: 700;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.5rem;
+  text-transform: capitalize;
 }
 
 .theriax-error {
-  margin-top: 0.32rem;
-  font-size: 0.76rem;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
   color: var(--danger);
   font-weight: 600;
 }
 
+/* ===== Buttons ===== */
 .theriax-btn {
   display: inline-flex;
   align-items: center;
@@ -159,8 +211,27 @@ body::before {
   padding: 0.72rem 1rem;
   border: 1px solid transparent;
   font-weight: 700;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  background-size: 200% 200%;
+}
+
+.theriax-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+
+.theriax-btn:hover::before {
+  left: 100%;
 }
 
 .theriax-btn:disabled {
@@ -169,34 +240,472 @@ body::before {
 }
 
 .theriax-btn-primary {
-  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%);
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 50%, #0a4a42 100%);
   color: #ffffff;
-  box-shadow: 0 8px 24px rgba(15, 118, 110, 0.32);
+  box-shadow: 0 8px 24px rgba(15, 118, 110, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .theriax-btn-primary:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 35px rgba(15, 118, 110, 0.45), 0 0 25px rgba(34, 197, 94, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  background: linear-gradient(135deg, #117a72 0%, #0f5b55 50%, #073d37 100%);
+}
+
+.theriax-btn-primary:active:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 12px 30px rgba(15, 118, 110, 0.36);
+}
+
+.theriax-btn-secondary {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.theriax-btn-secondary:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 35px rgba(139, 92, 246, 0.45), 0 0 25px rgba(139, 92, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .theriax-btn-ghost {
-  background: rgba(15, 118, 110, 0.08);
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.1) 0%, rgba(15, 118, 110, 0.05) 100%);
   color: var(--brand);
-  border-color: rgba(15, 118, 110, 0.24);
+  border-color: rgba(15, 118, 110, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .theriax-btn-ghost:hover:not(:disabled) {
-  background: rgba(15, 118, 110, 0.15);
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.18) 0%, rgba(15, 118, 110, 0.1) 100%);
+  border-color: rgba(15, 118, 110, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(15, 118, 110, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .theriax-btn-danger {
-  background: rgba(220, 38, 38, 0.1);
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.15) 0%, rgba(220, 38, 38, 0.08) 100%);
   color: var(--danger);
-  border-color: rgba(220, 38, 38, 0.24);
+  border-color: rgba(220, 38, 38, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .theriax-btn-danger:hover:not(:disabled) {
-  background: rgba(220, 38, 38, 0.16);
+  background: rgba(220, 38, 38, 0.22);
+  border-color: rgba(220, 38, 38, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* ===== Pills & Badges ===== */
+.theriax-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.32rem 0.72rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.theriax-pill-high {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(234, 88, 12, 0.15) 100%);
+  color: #991b1b;
+  border: 1px solid rgba(220, 38, 38, 0.4);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.1);
+}
+
+.theriax-pill-high:hover {
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+  transform: translateY(-1px);
+}
+
+.theriax-pill-medium {
+  background: linear-gradient(135deg, rgba(180, 83, 9, 0.2) 0%, rgba(245, 158, 11, 0.15) 100%);
+  color: #78350f;
+  border: 1px solid rgba(180, 83, 9, 0.4);
+  box-shadow: 0 2px 8px rgba(180, 83, 9, 0.1);
+}
+
+.theriax-pill-medium:hover {
+  box-shadow: 0 4px 12px rgba(180, 83, 9, 0.15);
+  transform: translateY(-1px);
+}
+
+.theriax-pill-low {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(16, 185, 129, 0.15) 100%);
+  color: #065f46;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
+}
+
+.theriax-pill-low:hover {
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+  transform: translateY(-1px);
+}
+
+/* ===== Navigation ===== */
+.theriax-nav-link {
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  transition: all 0.3s ease;
+  position: relative;
+  background: transparent;
+}
+
+.theriax-nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2.5px;
+  background: linear-gradient(90deg, var(--brand), rgba(34, 197, 94, 0.6));
+  transition: width 0.3s ease;
+  border-radius: 999px;
+}
+
+.theriax-nav-link:hover {
+  color: var(--brand);
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.1) 0%, rgba(15, 118, 110, 0.05) 100%);
+}
+
+.theriax-nav-link:hover::after {
+  width: 100%;
+}
+
+.theriax-nav-link-active {
+  color: var(--brand);
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.15) 0%, rgba(34, 197, 94, 0.08) 100%);
+  box-shadow: inset 0 1px 3px rgba(15, 118, 110, 0.1);
+}
+
+.theriax-nav-link-active::after {
+  width: 100%;
+}
+
+/* ===== Cards & Data Display ===== */
+.theriax-card {
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(240, 253, 244, 0.5) 50%, rgba(234, 211, 255, 0.3) 100%);
+  border: 1.5px solid rgba(34, 197, 94, 0.25);
+  box-shadow: 0 4px 20px rgba(15, 118, 110, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.theriax-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 300%;
+  height: 300%;
+  background: radial-gradient(circle, rgba(34, 197, 94, 0.03), transparent 70%);
+  animation: float 12s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.theriax-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 40px rgba(15, 118, 110, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border-color: rgba(34, 197, 94, 0.5);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 253, 244, 0.6) 50%, rgba(234, 211, 255, 0.4) 100%);
+}
+
+/* ===== Loading States ===== */
+.theriax-loading-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+  border-radius: 8px;
+}
+
+/* ===== Gradients ===== */
+.gradient-aurora {
+  background: var(--gradient-aurora);
+  background-size: 300% 300%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+.gradient-sunset {
+  background: var(--gradient-sunset);
+  background-size: 300% 300%;
+  animation: gradient-shift 10s ease infinite;
+}
+
+.gradient-ocean {
+  background: var(--gradient-ocean);
+  background-size: 300% 300%;
+  animation: gradient-shift 12s ease infinite;
+}
+
+/* ===== Animations ===== */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.4), 0 0 20px rgba(34, 197, 94, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.6), 0 0 40px rgba(34, 197, 94, 0.3);
+  }
+}
+
+@keyframes color-shift {
+  0% {
+    background-color: rgba(34, 197, 94, 0.1);
+  }
+  50% {
+    background-color: rgba(139, 92, 246, 0.1);
+  }
+  100% {
+    background-color: rgba(34, 197, 94, 0.1);
+  }
+}
+
+/* ===== Table Styles ===== */
+.theriax-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.theriax-table thead {
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.12) 0%, rgba(139, 92, 246, 0.08) 50%, rgba(34, 197, 94, 0.08) 100%);
+  border-bottom: 2px solid rgba(15, 118, 110, 0.25);
+}
+
+.theriax-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 700;
+  color: var(--ink);
+  text-transform: capitalize;
+  background: linear-gradient(90deg, rgba(15, 118, 110, 0.08), rgba(139, 92, 246, 0.06));
+}
+
+.theriax-table td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid rgba(15, 118, 110, 0.12);
+  color: var(--ink);
+}
+
+.theriax-table tbody tr {
+  transition: all 0.3s ease;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(34, 197, 94, 0.03));
+}
+
+.theriax-table tbody tr:hover {
+  background: linear-gradient(90deg, rgba(15, 118, 110, 0.08), rgba(139, 92, 246, 0.06));
+  box-shadow: inset 0 0 15px rgba(15, 118, 110, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.theriax-scroll {
+  overflow-x: auto;
+  border-radius: 16px;
+  border: 1.5px solid rgba(15, 118, 110, 0.15);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(240, 253, 244, 0.3));
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+/* ===== Alert Styles ===== */
+.theriax-alert {
+  padding: 1rem;
+  border-radius: 12px;
+  border-left: 4px solid transparent;
+  font-size: 0.9rem;
+  animation: slide-up 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+.theriax-alert-error {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.12) 0%, rgba(220, 38, 38, 0.06) 100%);
+  color: var(--danger);
+  border-left-color: var(--danger);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+}
+
+.theriax-alert-success {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(34, 197, 94, 0.06) 100%);
+  color: var(--success);
+  border-left-color: var(--success);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+/* ===== Stats Card ===== */
+.theriax-stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.theriax-stat-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.15), transparent 70%);
+  animation: float 10s ease-in-out infinite;
+}
+
+.theriax-stat-card-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .theriax-auth-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .theriax-auth-brand {
+    padding: 2.5rem 1.5rem !important;
+    min-height: 300px;
+  }
+
+  .theriax-btn {
+    padding: 0.65rem 0.9rem;
+    font-size: 0.9rem;
+  }
+
+  .theriax-table {
+    font-size: 0.85rem;
+  }
+
+  .theriax-table th,
+  .theriax-table td {
+    padding: 0.7rem;
+  }
+
+  .theriax-surface {
+    border-radius: 16px;
+  }
+
+  .theriax-card {
+    padding: 1.25rem;
+  }
+
+  body::before {
+    mask-image: radial-gradient(circle at center, black 30%, transparent 85%);
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    background-attachment: scroll;
+  }
+
+  .theriax-btn {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .theriax-auth-brand::after {
+    width: 280px;
+    height: 280px;
+    right: -140px;
+    bottom: -140px;
+  }
+
+  .theriax-label {
+    font-size: 0.8rem;
+  }
+
+  .theriax-input {
+    padding: 0.65rem 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* ===== Print Styles ===== */
+@media print {
+  body::before {
+    display: none;
+  }
+
+  .theriax-surface {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+
+  .theriax-btn {
+    background: white !important;
+    border: 1px solid #999 !important;
+    color: black !important;
+  }
+}
+
+/* ===== Dark Mode Ready ===== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: rgba(25, 35, 50, 0.9);
+    --surface-strong: rgba(35, 45, 65, 0.95);
+  }
 }
 
 .theriax-pill {
@@ -332,4 +841,51 @@ body::before {
   .theriax-surface {
     border-radius: 16px;
   }
+}
+
+/* ===== Scrollbar Styling ===== */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, rgba(240, 253, 244, 0.4) 0%, rgba(245, 243, 255, 0.3) 100%);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--brand) 0%, var(--brand-deep) 100%);
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 12px rgba(15, 118, 110, 0.25);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #117a72 0%, #0f5b55 100%);
+  box-shadow: 0 0 18px rgba(15, 118, 110, 0.4);
+}
+
+::-webkit-scrollbar-corner {
+  background: rgba(240, 253, 244, 0.3);
+  border-radius: 999px;
+}
+
+/* Firefox Scrollbar */
+* {
+  scrollbar-color: linear-gradient(180deg, var(--brand) 0%, var(--brand-deep) 100%) rgba(240, 253, 244, 0.4);
+  scrollbar-width: thin;
+}
+
+/* ===== Selection Styling ===== */
+::selection {
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.5) 0%, rgba(139, 92, 246, 0.4) 100%);
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+::-moz-selection {
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.5) 0%, rgba(139, 92, 246, 0.4) 100%);
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
