@@ -1,44 +1,63 @@
-<!-- templates/dashboard.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>AI Predictions Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theriax Dashboard Logs</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <h1>Recent AI Predictions</h1>
+    <main class="page-shell">
+        <header class="panel hero">
+            <div>
+                <p class="kicker">Theriax Analytics</p>
+                <h1>Recent AI Predictions</h1>
+                <p>Audit recommendation outcomes with dosage, confidence, and severity context.</p>
+            </div>
+            <div class="hero-actions">
+                <a class="btn btn-primary" href="/dashboard/top-medicines">View Top Medicines</a>
+            </div>
+        </header>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Timestamp</th>
-                <th>Symptoms</th>
-                <th>Condition</th>
-                <th>Severity</th>
-                <th>Predicted Medicine</th>
-                <th>Dosage</th>
-                <th>Cost</th>
-                <th>Generic</th>
-                <th>Confidence</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for log in logs %}
-            <tr>
-                <td>{{ log.timestamp }}</td>
-                <td>{{ log.symptoms }}</td>
-                <td>{{ log.condition }}</td>
-                <td>{{ log.severity }}</td>
-                <td>{{ log.predicted_medicine }}</td>
-                <td>{{ log.predicted_dosage }}</td>
-                <td>{{ log.predicted_cost }}</td>
-                <td>{{ 'Yes' if log.is_generic else 'No' }}</td>
-                <td>{{ '{:.0%}'.format(log.confidence) if log.confidence else '—' }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <a href="/dashboard/top-medicines">🔝 View Top Recommended Medicines</a>
+        <section class="panel">
+            {% if logs %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Symptoms</th>
+                                <th>Condition</th>
+                                <th>Severity</th>
+                                <th>Medicine</th>
+                                <th>Dosage</th>
+                                <th>Cost</th>
+                                <th>Generic</th>
+                                <th>Confidence</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                                {% set level = (log.severity or 'low')|lower %}
+                                <tr>
+                                    <td>{{ log.timestamp or 'N/A' }}</td>
+                                    <td>{{ log.symptoms or 'N/A' }}</td>
+                                    <td>{{ log.condition or 'N/A' }}</td>
+                                    <td><span class="pill pill-{{ level }}">{{ log.severity or 'low' }}</span></td>
+                                    <td>{{ log.predicted_medicine or 'N/A' }}</td>
+                                    <td>{{ log.predicted_dosage or 'N/A' }}</td>
+                                    <td>{{ log.predicted_cost if log.predicted_cost is not none else 'N/A' }}</td>
+                                    <td>{{ 'Yes' if log.is_generic else 'No' }}</td>
+                                    <td>{{ '{:.1%}'.format(log.confidence) if log.confidence is not none else 'N/A' }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">No prediction logs available yet.</div>
+            {% endif %}
+        </section>
+    </main>
 </body>
 </html>

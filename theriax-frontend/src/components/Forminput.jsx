@@ -1,12 +1,32 @@
-export function FormInput({ type, placeholder, value, onChange }) {
-    return (
+export function FormInput({
+  id,
+  label,
+  type = "text",
+  placeholder,
+  value,
+  onChange,
+  required = true,
+  autoComplete,
+  error,
+}) {
+  return (
+    <div>
+      {label && (
+        <label htmlFor={id} className="theriax-label">
+          {label}
+        </label>
+      )}
       <input
-        className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring focus:ring-blue-200 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+        id={id}
+        className={`theriax-input ${error ? "theriax-input-error" : ""}`}
         type={type}
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        required
+        required={required}
+        autoComplete={autoComplete}
       />
-    );
+      {error && <p className="theriax-error">{error}</p>}
+    </div>
+  );
 }

@@ -1,30 +1,53 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Card } from "../components/Card";
+import WorkspaceShell from "../components/WorkspaceShell";
 import api from "../utils/api";
 
-const MotionDiv = motion.div;
 const MotionTr = motion.tr;
 
-function getTokenPayload(token) {
+function toSeverityClass(severity) {
+  const level = (severity || "").toLowerCase();
+  if (level === "high") return "theriax-pill theriax-pill-high";
+  if (level === "medium") return "theriax-pill theriax-pill-medium";
+  return "theriax-pill theriax-pill-low";
+}
+
+function formatConfidence(confidence) {
+  const numericConfidence = Number(confidence);
+  if (!Number.isFinite(numericConfidence)) return "N/A";
+  return `${(numericConfidence * 100).toFixed(1)}%`;
+}
+
+function formatTimestamp(timestamp) {
+  if (!timestamp) return "N/A";
   try {
-    const payload = token.split(".")[1];
-    return JSON.parse(atob(payload));
+    return new Date(timestamp).toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
   } catch {
-    return null;
+    return "N/A";
   }
 }
 
 export default function Dashboard() {
-  const [user, setUser] = useState(null);
   const [topMeds, setTopMeds] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
   const [searching, setSearching] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(7);
+  const [visibleCount, setVisibleCount] = useState(8);
   const [loadingMore, setLoadingMore] = useState(false);
   const navigate = useNavigate();
 
@@ -37,16 +60,10 @@ export default function Dashboard() {
 
     const fetchData = async () => {
       try {
-        const [topMedsRes, logsRes] = await Promise.all([
-          api.get("/top-medicines"),
-          api.get("/dashboard-logs"),
-        ]);
+        const [topMedsRes, logsRes] = await Promise.all([api.get("/top-medicines"), api.get("/dashboard-logs")]);
 
         setTopMeds(topMedsRes.data || []);
         setLogs(logsRes.data || []);
-
-        const payload = getTokenPayload(token);
-        setUser({ email: payload?.email || "User" });
       } catch {
         setError("Failed to load dashboard data.");
       } finally {
@@ -57,13 +74,50 @@ export default function Dashboard() {
     fetchData();
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    navigate("/");
-  };
+  const stats = useMemo(() => {
+    const numericConfidences = logs
+      .map((entry) => Number(entry.confidence))
+      .filter((entryConfidence) => Number.isFinite(entryConfidence));
 
-  const handleSearch = () => {
+    const avgConfidence = numericConfidences.length
+      ? (numericConfidences.reduce((sum, value) => sum + value, 0) / numericConfidences.length) * 100
+      : null;
+
+    const highSeverityCount = logs.filter(
+      (entry) => (entry.severity || "").toLowerCase() === "high",
+    ).length;
+
+    const uniqueConditions = new Set(
+      logs.map((entry) => (entry.condition || "").trim()).filter((entryCondition) => Boolean(entryCondition)),
+    ).size;
+
+    return [
+      {
+        label: "Total Predictions",
+        value: logs.length.toLocaleString(),
+        tone: "from-teal-500/20 to-teal-700/15",
+      },
+      {
+        label: "Average Confidence",
+        value: avgConfidence === null ? "N/A" : `${avgConfidence.toFixed(1)}%`,
+        tone: "from-amber-500/20 to-orange-700/15",
+      },
+      {
+        label: "High Severity Cases",
+        value: highSeverityCount.toLocaleString(),
+        tone: "from-red-500/20 to-rose-700/15",
+      },
+      {
+        label: "Unique Conditions",
+        value: uniqueConditions.toLocaleString(),
+        tone: "from-cyan-500/20 to-sky-700/15",
+      },
+    ];
+  }, [logs]);
+
+  const visibleLogs = logs.slice(0, visibleCount);
+
+  const handleOpenSearch = () => {
     setSearching(true);
     navigate("/ai-search");
   };
@@ -71,127 +125,184 @@ export default function Dashboard() {
   const handleLoadMore = () => {
     setLoadingMore(true);
     setTimeout(() => {
-      setVisibleCount((prev) => prev + 7);
+      setVisibleCount((currentCount) => currentCount + 8);
       setLoadingMore(false);
-    }, 350);
+    }, 250);
   };
 
-  const severityBadge = (severity) => {
-    const base = "text-white px-2 py-1 rounded text-xs";
-    if (severity === "high") return <span className={`${base} bg-red-500`}>High</span>;
-    if (severity === "medium") return <span className={`${base} bg-yellow-500`}>Medium</span>;
-    return <span className={`${base} bg-green-500`}>Low</span>;
-  };
+  if (loading) {
+    return (
+      <WorkspaceShell
+        title="Dashboard Overview"
+        subtitle="Loading your latest model activity and recommendation logs."
+      >
+        <Card>
+          <p className="theriax-muted text-sm">Loading dashboard data...</p>
+        </Card>
+      </WorkspaceShell>
+    );
+  }
 
-  if (loading) return <div className="text-center mt-10 text-lg">Loading dashboard...</div>;
-  if (error) return <div className="text-center mt-10 text-red-600">{error}</div>;
+  if (error) {
+    return (
+      <WorkspaceShell
+        title="Dashboard Overview"
+        subtitle="There was a problem loading your analytics workspace."
+      >
+        <div className="theriax-alert theriax-alert-error">{error}</div>
+      </WorkspaceShell>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 space-y-8 w-full">
-      <MotionDiv
-        initial={{ opacity: 0, y: -10 }}
+    <WorkspaceShell
+      title="Dashboard Overview"
+      subtitle="Track recommendation quality, medicine trends, and recent case outcomes in one view."
+    >
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map((stat, index) => (
+          <motion.article
+            key={stat.label}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.06, duration: 0.3 }}
+            className="theriax-surface p-5"
+          >
+            <div className={`mb-3 h-2 w-16 rounded-full bg-gradient-to-r ${stat.tone}`} />
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{stat.label}</p>
+            <p className="theriax-display mt-2 text-2xl font-extrabold text-slate-900">{stat.value}</p>
+          </motion.article>
+        ))}
+      </section>
+
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white shadow rounded-2xl px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between"
+        transition={{ delay: 0.18, duration: 0.35 }}
       >
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Welcome, {user?.email}</h1>
-          <p className="text-sm text-gray-500">Your personalized AI dashboard</p>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="mt-4 sm:mt-0 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-        >
-          Logout
-        </button>
-      </MotionDiv>
-
-      <MotionDiv initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-        <Card title="Top Prescribed Medicines" className="mb-6 overflow-hidden">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={topMeds}>
-              <XAxis dataKey="medicine" />
-              <YAxis allowDecimals={false} />
-              <Tooltip contentStyle={{ backgroundColor: "#fff", borderRadius: "8px", fontSize: "0.9rem" }} />
-              <Bar dataKey="count" fill="#4ade80" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-      </MotionDiv>
-
-      <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <Card title="Recent AI Recommendations">
-          <div className="flex justify-between items-center mb-4">
-            <div />
-            <button
-              onClick={handleSearch}
-              disabled={searching}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
-            >
-              {searching ? "Opening..." : "Search AI"}
-            </button>
-          </div>
-
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="min-w-full text-sm text-gray-800">
-              <thead className="bg-gray-100 text-left font-medium border-b">
-                <tr>
-                  <th className="p-3">Condition</th>
-                  <th className="p-3">Symptoms</th>
-                  <th className="p-3">Medicine</th>
-                  <th className="p-3">Severity</th>
-                  <th className="p-3">Confidence</th>
-                  <th className="p-3">Timestamp</th>
-                </tr>
-              </thead>
-              <tbody>
-                <AnimatePresence initial={false}>
-                  {logs.slice(0, visibleCount).map((log) => {
-                    const confidenceText =
-                      typeof log.confidence === "number" ? `${(log.confidence * 100).toFixed(1)}%` : "N/A";
-
-                    return (
-                      <MotionTr
-                        key={log.id}
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        transition={{ duration: 0.25 }}
-                        className="border-t even:bg-gray-50 hover:bg-gray-100 transition"
-                      >
-                        <td className="p-3">{log.condition || "N/A"}</td>
-                        <td className="p-3 max-w-sm truncate">{log.symptoms || "N/A"}</td>
-                        <td className="p-3">{log.predicted_medicine || log.medicine || "N/A"}</td>
-                        <td className="p-3">{severityBadge(log.severity)}</td>
-                        <td className="p-3">{confidenceText}</td>
-                        <td className="p-3">
-                          {log.timestamp
-                            ? new Date(log.timestamp).toLocaleString(undefined, {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                              })
-                            : "N/A"}
-                        </td>
-                      </MotionTr>
-                    );
-                  })}
-                </AnimatePresence>
-              </tbody>
-            </table>
-
-            {visibleCount < logs.length && (
-              <div className="p-4 text-center">
-                <button
-                  onClick={handleLoadMore}
-                  className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition"
-                  disabled={loadingMore}
-                >
-                  {loadingMore ? "Loading..." : "Load More"}
-                </button>
+        <Card title="Top Prescribed Medicines" subtitle="Frequency of model recommendations by medicine">
+          <div className="h-[330px]">
+            {topMeds.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topMeds} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(19, 36, 54, 0.12)" />
+                  <XAxis
+                    dataKey="medicine"
+                    tick={{ fontSize: 12, fill: "#415e73" }}
+                    axisLine={{ stroke: "rgba(19, 36, 54, 0.2)" }}
+                    tickLine={{ stroke: "rgba(19, 36, 54, 0.2)" }}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 12, fill: "#415e73" }}
+                    axisLine={{ stroke: "rgba(19, 36, 54, 0.2)" }}
+                    tickLine={{ stroke: "rgba(19, 36, 54, 0.2)" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(15, 118, 110, 0.08)" }}
+                    contentStyle={{
+                      borderRadius: "12px",
+                      border: "1px solid rgba(19, 36, 54, 0.14)",
+                      backgroundColor: "rgba(255, 255, 255, 0.96)",
+                      boxShadow: "0 12px 30px rgba(10, 34, 51, 0.13)",
+                    }}
+                  />
+                  <Bar dataKey="count" fill="#0f766e" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white/65">
+                <p className="theriax-muted text-sm">No chart data available yet.</p>
               </div>
             )}
           </div>
         </Card>
-      </MotionDiv>
-    </div>
+      </motion.section>
+
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.24, duration: 0.35 }}
+      >
+        <Card
+          title="Recent AI Recommendations"
+          subtitle="Most recent prediction logs with confidence and severity context"
+        >
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="theriax-muted text-sm">
+              Showing {Math.min(visibleCount, logs.length)} of {logs.length} entries
+            </p>
+            <button
+              type="button"
+              onClick={handleOpenSearch}
+              disabled={searching}
+              className="theriax-btn theriax-btn-primary px-4 py-2 text-sm"
+            >
+              {searching ? "Opening..." : "Open AI Search"}
+            </button>
+          </div>
+
+          {logs.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-white/65 p-6 text-center">
+              <p className="theriax-muted text-sm">No recommendations logged yet.</p>
+            </div>
+          ) : (
+            <>
+              <div className="theriax-scroll">
+                <table className="theriax-table">
+                  <thead>
+                    <tr>
+                      <th>Condition</th>
+                      <th>Symptoms</th>
+                      <th>Medicine</th>
+                      <th>Severity</th>
+                      <th>Confidence</th>
+                      <th>Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <AnimatePresence initial={false}>
+                      {visibleLogs.map((log, index) => (
+                        <MotionTr
+                          key={log.id ?? `${log.timestamp || "row"}-${index}`}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -6 }}
+                          transition={{ duration: 0.22 }}
+                        >
+                          <td>{log.condition || "N/A"}</td>
+                          <td className="max-w-[260px] truncate" title={log.symptoms || "N/A"}>
+                            {log.symptoms || "N/A"}
+                          </td>
+                          <td>{log.predicted_medicine || log.medicine || "N/A"}</td>
+                          <td>
+                            <span className={toSeverityClass(log.severity)}>{log.severity || "low"}</span>
+                          </td>
+                          <td>{formatConfidence(log.confidence)}</td>
+                          <td>{formatTimestamp(log.timestamp)}</td>
+                        </MotionTr>
+                      ))}
+                    </AnimatePresence>
+                  </tbody>
+                </table>
+              </div>
+
+              {visibleCount < logs.length && (
+                <div className="mt-4 text-center">
+                  <button
+                    type="button"
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                    className="theriax-btn theriax-btn-ghost px-4 py-2 text-sm"
+                  >
+                    {loadingMore ? "Loading..." : "Load More"}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </Card>
+      </motion.section>
+    </WorkspaceShell>
   );
 }

@@ -1,43 +1,80 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Select from "react-select";
+import { Card } from "../components/Card";
+import WorkspaceShell from "../components/WorkspaceShell";
 import api from "../utils/api";
 
-const MotionForm = motion.form;
+const severityOptions = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+];
+
+const menuPortalTarget = typeof document !== "undefined" ? document.body : null;
 
 const customSelectStyles = {
-  control: (provided) => ({
+  control: (provided, state) => ({
     ...provided,
-    backgroundColor: "#f9fafb",
-    borderColor: "#d1d5db",
-    borderRadius: "0.5rem",
-    boxShadow: "none",
+    minHeight: "46px",
+    borderRadius: "12px",
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderColor: state.isFocused ? "rgba(15,118,110,0.55)" : "rgba(19,36,54,0.17)",
+    boxShadow: state.isFocused ? "0 0 0 4px rgba(15,118,110,0.24)" : "none",
     "&:hover": {
-      borderColor: "#2563eb",
+      borderColor: "rgba(15,118,110,0.7)",
     },
   }),
-  option: (provided, state) => ({
+  placeholder: (provided) => ({
     ...provided,
-    backgroundColor: state.isFocused ? "#e0f2fe" : "white",
-    color: "#111827",
-    fontSize: "0.875rem",
-  }),
-  multiValue: (provided) => ({
-    ...provided,
-    backgroundColor: "#dbeafe",
-    borderRadius: "9999px",
-    padding: "2px 6px",
-  }),
-  multiValueLabel: (provided) => ({
-    ...provided,
-    color: "#1e3a8a",
-    fontWeight: "500",
+    color: "#6a8193",
+    fontSize: "0.92rem",
   }),
   menu: (provided) => ({
     ...provided,
+    borderRadius: "12px",
+    overflow: "hidden",
+    border: "1px solid rgba(19,36,54,0.16)",
+    boxShadow: "0 12px 28px rgba(10,34,51,0.16)",
+  }),
+  menuPortal: (provided) => ({
+    ...provided,
     zIndex: 9999,
   }),
+  option: (provided, state) => ({
+    ...provided,
+    backgroundColor: state.isSelected
+      ? "rgba(15,118,110,0.2)"
+      : state.isFocused
+        ? "rgba(15,118,110,0.11)"
+        : "white",
+    color: "#143247",
+    fontSize: "0.88rem",
+  }),
+  multiValue: (provided) => ({
+    ...provided,
+    backgroundColor: "rgba(15,118,110,0.18)",
+    borderRadius: "999px",
+    paddingLeft: "4px",
+  }),
+  multiValueLabel: (provided) => ({
+    ...provided,
+    color: "#0f5b55",
+    fontWeight: 700,
+  }),
 };
+
+function formatCurrency(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return value || "N/A";
+  return `$${numericValue.toFixed(2)}`;
+}
+
+function formatConfidence(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return "N/A";
+  return `${(numericValue * 100).toFixed(2)}%`;
+}
 
 export default function AISearch() {
   const [symptoms, setSymptoms] = useState([]);
@@ -56,10 +93,7 @@ export default function AISearch() {
   useEffect(() => {
     const fetchDropdowns = async () => {
       try {
-        const [conditionsRes, symptomsRes] = await Promise.all([
-          api.get("/conditions"),
-          api.get("/symptoms"),
-        ]);
+        const [conditionsRes, symptomsRes] = await Promise.all([api.get("/conditions"), api.get("/symptoms")]);
         setConditions((conditionsRes.data || []).sort((a, b) => a.name.localeCompare(b.name)));
         setSymptomOptions((symptomsRes.data || []).sort());
       } catch {
@@ -71,17 +105,17 @@ export default function AISearch() {
   }, []);
 
   const validateForm = () => {
-    const newErrors = {};
-    if (!symptoms.length) newErrors.symptoms = "Please select at least one symptom.";
-    if (!age || Number.isNaN(+age) || +age < 1) newErrors.age = "Enter a valid age.";
-    if (!weight || Number.isNaN(+weight) || +weight < 1) newErrors.weight = "Enter a valid weight.";
-    if (!condition) newErrors.condition = "Please select a condition.";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const nextErrors = {};
+    if (!symptoms.length) nextErrors.symptoms = "Select at least one symptom.";
+    if (!age || Number.isNaN(+age) || +age < 1) nextErrors.age = "Enter a valid age.";
+    if (!weight || Number.isNaN(+weight) || +weight < 1) nextErrors.weight = "Enter a valid weight.";
+    if (!condition) nextErrors.condition = "Select a condition.";
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setRequestError("");
     setAiResult(null);
     setSuggestedMeds([]);
@@ -90,149 +124,196 @@ export default function AISearch() {
 
     setLoading(true);
     try {
-      const resAI = await api.post("/ai-recommend", {
-        symptoms: symptoms.map((s) => s.value).join(", "),
+      const aiResponse = await api.post("/ai-recommend", {
+        symptoms: symptoms.map((selectedSymptom) => selectedSymptom.value).join(", "),
         age: +age,
         weight: +weight,
         condition,
         severity,
       });
-      setAiResult(resAI.data);
+      setAiResult(aiResponse.data);
 
-      const resSuggested = await api.get("/medicines-by-condition", {
+      const suggestedResponse = await api.get("/medicines-by-condition", {
         params: { condition, severity },
       });
-      setSuggestedMeds(resSuggested.data || []);
-    } catch (err) {
-      setRequestError(err.response?.data?.detail || "Failed to fetch suggestions.");
+      setSuggestedMeds(suggestedResponse.data || []);
+    } catch (error) {
+      setRequestError(error.response?.data?.detail || "Failed to fetch suggestions.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 w-full">
-      <MotionForm
-        onSubmit={handleSubmit}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-6 rounded-xl shadow space-y-4"
-      >
-        <h2 className="text-xl font-bold">AI Medicine Recommendation</h2>
-
-        <div className="mb-3">
-          <label className="block mb-1 font-medium">Symptoms</label>
-          <Select
-            styles={customSelectStyles}
-            options={symptomOptions.map((s) => ({ label: s, value: s }))}
-            value={symptoms}
-            onChange={(selected) => setSymptoms(selected || [])}
-            isMulti
-            placeholder="Select or search symptoms"
-            menuPlacement="auto"
-            menuShouldScrollIntoView
-            menuPortalTarget={document.body}
-          />
-          {errors.symptoms && <p className="text-red-500 text-sm">{errors.symptoms}</p>}
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block mb-1 font-medium">Age</label>
-            <input
-              type="number"
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              className="w-full border rounded p-2"
-            />
-            {errors.age && <p className="text-red-500 text-sm">{errors.age}</p>}
-          </div>
-          <div>
-            <label className="block mb-1 font-medium">Weight (kg)</label>
-            <input
-              type="number"
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-              className="w-full border rounded p-2"
-            />
-            {errors.weight && <p className="text-red-500 text-sm">{errors.weight}</p>}
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <label className="block mb-1 font-medium">Condition</label>
-          <Select
-            styles={customSelectStyles}
-            options={conditions.map((c) => ({ label: c.name, value: c.name }))}
-            value={condition ? { label: condition, value: condition } : null}
-            onChange={(selected) => setCondition(selected?.value || "")}
-            placeholder="Select or search condition"
-            menuPlacement="auto"
-            menuShouldScrollIntoView
-            menuPortalTarget={document.body}
-          />
-          {errors.condition && <p className="text-red-500 text-sm">{errors.condition}</p>}
-        </div>
-
-        <div>
-          <label className="block mb-1 font-medium">Severity</label>
-          <select
-            value={severity}
-            onChange={(e) => setSeverity(e.target.value)}
-            className="w-full border rounded p-2"
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50"
+    <WorkspaceShell
+      title="AI Recommendation Search"
+      subtitle="Enter patient details and symptoms to generate model-backed medicine recommendations."
+    >
+      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <motion.section
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.35 }}
         >
-          {loading ? "Loading..." : "Submit"}
-        </button>
-      </MotionForm>
+          <Card title="Case Input" subtitle="Define a clinical scenario and run AI recommendation search">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="theriax-label">Symptoms</label>
+                <Select
+                  styles={customSelectStyles}
+                  options={symptomOptions.map((item) => ({ label: item, value: item }))}
+                  value={symptoms}
+                  onChange={(selected) => setSymptoms(selected || [])}
+                  isMulti
+                  placeholder="Select or search symptoms"
+                  menuPortalTarget={menuPortalTarget}
+                  menuPlacement="auto"
+                />
+                {errors.symptoms && <p className="theriax-error">{errors.symptoms}</p>}
+              </div>
 
-      {requestError && <p className="mt-4 text-sm text-red-600">{requestError}</p>}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="age" className="theriax-label">
+                    Age
+                  </label>
+                  <input
+                    id="age"
+                    type="number"
+                    value={age}
+                    onChange={(event) => setAge(event.target.value)}
+                    className={`theriax-input ${errors.age ? "theriax-input-error" : ""}`}
+                    placeholder="Years"
+                  />
+                  {errors.age && <p className="theriax-error">{errors.age}</p>}
+                </div>
 
-      {suggestedMeds.length > 0 && (
-        <div className="mt-6 bg-blue-50 border border-blue-300 p-4 rounded">
-          <h3 className="text-lg font-bold mb-2">Condition-Based Suggestions</h3>
-          <ul className="list-disc ml-6 text-sm text-gray-700">
-            {suggestedMeds.map((med) => (
-              <li key={`${med.name}-${med.dosage}`}>
-                <strong>{med.name}</strong> - {med.dosage}, {med.cost} {med.is_generic ? "(Generic)" : ""}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+                <div>
+                  <label htmlFor="weight" className="theriax-label">
+                    Weight (kg)
+                  </label>
+                  <input
+                    id="weight"
+                    type="number"
+                    value={weight}
+                    onChange={(event) => setWeight(event.target.value)}
+                    className={`theriax-input ${errors.weight ? "theriax-input-error" : ""}`}
+                    placeholder="Kilograms"
+                  />
+                  {errors.weight && <p className="theriax-error">{errors.weight}</p>}
+                </div>
+              </div>
 
-      {aiResult && (
-        <div className="mt-6 bg-green-50 border border-green-300 p-4 rounded">
-          <h3 className="text-lg font-bold mb-2">AI Recommended Medicine</h3>
+              <div>
+                <label className="theriax-label">Condition</label>
+                <Select
+                  styles={customSelectStyles}
+                  options={conditions.map((item) => ({ label: item.name, value: item.name }))}
+                  value={condition ? { label: condition, value: condition } : null}
+                  onChange={(selected) => setCondition(selected?.value || "")}
+                  placeholder="Select or search condition"
+                  menuPortalTarget={menuPortalTarget}
+                  menuPlacement="auto"
+                />
+                {errors.condition && <p className="theriax-error">{errors.condition}</p>}
+              </div>
+
+              <div>
+                <label className="theriax-label">Severity</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {severityOptions.map((option) => {
+                    const isActive = severity === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setSeverity(option.value)}
+                        className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                          isActive
+                            ? "border-teal-600 bg-teal-600 text-white shadow-md shadow-teal-600/25"
+                            : "border-slate-300 bg-white/80 text-slate-600 hover:border-teal-500 hover:text-teal-700"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <button type="submit" disabled={loading} className="theriax-btn theriax-btn-primary w-full">
+                {loading ? "Generating recommendation..." : "Run AI Recommendation"}
+              </button>
+
+              {requestError && <div className="theriax-alert theriax-alert-error">{requestError}</div>}
+            </form>
+          </Card>
+        </motion.section>
+
+        <motion.section
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.35, delay: 0.06 }}
+          className="space-y-6"
+        >
+          <Card title="AI Recommendation" subtitle="Primary model output for the submitted case">
+            {aiResult ? (
+              <div className="space-y-3">
+                <p className="theriax-display text-xl font-bold text-slate-900">{aiResult.ai_model || "N/A"}</p>
+                <p className="theriax-muted text-sm">{aiResult.info || "No additional details provided."}</p>
+                {aiResult.unknown_symptoms?.length > 0 && (
+                  <div className="theriax-alert theriax-alert-error">
+                    Unknown symptoms ignored: {aiResult.unknown_symptoms.join(", ")}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="theriax-muted text-sm">No AI output yet. Submit the form to generate a recommendation.</p>
+            )}
+          </Card>
+
           {aiResult?.top_predictions?.length > 0 && (
-            <div className="mt-6 bg-yellow-50 border border-yellow-300 p-4 rounded">
-              <h3 className="text-lg font-bold mb-2">Top 3 AI Predictions</h3>
-              <ul className="list-decimal ml-6 text-sm text-gray-800">
-                {aiResult.top_predictions.map((prediction) => (
-                  <li key={prediction.name}>
-                    {prediction.name} - <span className="text-blue-600 font-medium">{(prediction.confidence * 100).toFixed(2)}%</span>
+            <Card title="Top Predictions" subtitle="Highest confidence model candidates">
+              <ol className="space-y-2 text-sm">
+                {aiResult.top_predictions.map((prediction, index) => (
+                  <li
+                    key={`${prediction.name}-${index}`}
+                    className="flex items-center justify-between rounded-xl border border-slate-200 bg-white/75 px-3 py-2"
+                  >
+                    <span className="font-semibold text-slate-800">{prediction.name || "N/A"}</span>
+                    <span className="rounded-full bg-teal-100 px-2 py-1 text-xs font-bold text-teal-800">
+                      {formatConfidence(prediction.confidence)}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </Card>
+          )}
+
+          <Card title="Condition-Based Suggestions" subtitle="Rule-based medicines filtered by severity">
+            {suggestedMeds.length > 0 ? (
+              <ul className="space-y-2 text-sm">
+                {suggestedMeds.map((medicine, index) => (
+                  <li
+                    key={`${medicine.name || "medicine"}-${medicine.dosage || "dose"}-${index}`}
+                    className="rounded-xl border border-slate-200 bg-white/75 px-3 py-3"
+                  >
+                    <p className="font-semibold text-slate-800">{medicine.name || "Unknown medicine"}</p>
+                    <p className="theriax-muted mt-1 text-xs">
+                      Dosage: {medicine.dosage || "N/A"} | Cost: {formatCurrency(medicine.cost)}{" "}
+                      {medicine.is_generic ? "| Generic" : ""}
+                    </p>
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
-          <p className="text-lg font-semibold">{aiResult.ai_model}</p>
-          <p className="text-sm text-gray-600 mt-1">{aiResult.info}</p>
-          {aiResult.unknown_symptoms?.length > 0 && (
-            <p className="text-xs text-amber-700 mt-2">Unknown symptoms ignored: {aiResult.unknown_symptoms.join(", ")}</p>
-          )}
-        </div>
-      )}
-    </div>
+            ) : (
+              <p className="theriax-muted text-sm">
+                No suggestions yet. Run a search to view matching medicines for the selected condition.
+              </p>
+            )}
+          </Card>
+        </motion.section>
+      </div>
+    </WorkspaceShell>
   );
 }
