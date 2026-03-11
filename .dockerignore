@@ -1,0 +1,25 @@
+.git
+.gitignore
+.dist/
+__pycache__/
+*.py[cod]
+*.pyo
+*.log
+*.sqlite
+*.db
+.venv/
+venv/
+.env
+node_modules/
+dist/
+theriax-frontend/
+evolve/model_files/
+model_files/
+*.pkl
+*.zip
+dummy_data.csv
+dummy_data_max.csv
+Backend core modules -1.png
+Backend core modules -2.png
+Backend stack.png
+desktop.ini

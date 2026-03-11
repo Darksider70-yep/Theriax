@@ -5,6 +5,51 @@ Full-stack healthcare recommendation prototype:
 - `evolve/evolve_api.py`: AI prediction microservice
 - `theriax-frontend/`: React + Vite frontend
 
+## Docker (recommended)
+
+### 1. Prepare environment
+
+Create `.env` in project root (or copy from `.env.docker.example`):
+
+```bash
+cp .env.docker.example .env
+```
+
+At minimum, set:
+
+```env
+SUPABASE_URL=...
+SUPABASE_SERVICE_KEY=...
+```
+
+Optional values:
+- `DOCKER_DATABASE_URL` (if omitted, compose uses persistent SQLite volume)
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (for browser Supabase auth flows)
+
+### 2. Build and start all services
+
+```bash
+docker compose up --build
+```
+
+### 3. Open apps
+
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8000`
+- Evolve service: `http://localhost:9000`
+
+### 4. Stop stack
+
+```bash
+docker compose down
+```
+
+To also remove the persistent SQLite volume:
+
+```bash
+docker compose down -v
+```
+
 ## 1. Backend setup
 
 ```bash

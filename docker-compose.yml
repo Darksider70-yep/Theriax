@@ -1,0 +1,50 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: theriax-backend
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-sqlite:///./.data/theriax_local.db}
+      EVOLVE_URL: http://evolve:9000/predict
+      ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      GOOGLE_REDIRECT_URL: http://localhost:5173/auth/callback
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_sqlite_data:/app/.data
+    restart: unless-stopped
+
+  evolve:
+    build:
+      context: .
+      dockerfile: Dockerfile.evolve
+    container_name: theriax-evolve
+    env_file:
+      - .env
+    environment:
+      BACKEND_URL: http://backend:8000
+      MODEL_UPDATE_INTERVAL_SECONDS: ${MODEL_UPDATE_INTERVAL_SECONDS:-3600}
+    ports:
+      - "9000:9000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./theriax-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
+    container_name: theriax-frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+
+volumes:
+  backend_sqlite_data:
