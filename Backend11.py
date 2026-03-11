@@ -12,7 +12,7 @@ import joblib
 import pandas as pd
 from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi import Depends, FastAPI, HTTPException, Request, status, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
@@ -50,6 +50,19 @@ def parse_allowed_origins(raw_origins: Optional[str]) -> List[str]:
 
 ALLOWED_ORIGINS = parse_allowed_origins(os.getenv('ALLOWED_ORIGINS'))
 ALLOW_ALL_ORIGINS = '*' in ALLOWED_ORIGINS
+
+# helper used by manual OPTIONS responses
+
+def make_cors_response():
+    headers = {}
+    if ALLOW_ALL_ORIGINS:
+        headers['Access-Control-Allow-Origin'] = '*'
+    else:
+        headers['Access-Control-Allow-Origin'] = ','.join(ALLOWED_ORIGINS)
+    headers['Access-Control-Allow-Methods'] = '*'
+    headers['Access-Control-Allow-Headers'] = '*'
+    headers['Access-Control-Allow-Credentials'] = 'true' if not ALLOW_ALL_ORIGINS else 'false'
+    return Response(status_code=200, headers=headers)
 
 app.add_middleware(
     CORSMiddleware,
@@ -339,8 +352,7 @@ def retrain_model(db: Session) -> Dict[str, int]:
 
 @app.options('/signup')
 def options_signup():
-    return {'status': 'ok'}
-
+    return make_cors_response()
 
 @app.post('/signup', status_code=status.HTTP_201_CREATED)
 def signup(auth: AuthDetails, db: Session = Depends(get_db)):
@@ -385,8 +397,7 @@ def signup(auth: AuthDetails, db: Session = Depends(get_db)):
 
 @app.options('/login')
 def options_login():
-    return {'status': 'ok'}
-
+    return make_cors_response()
 
 @app.post('/login')
 def login(auth: AuthDetails, db: Session = Depends(get_db)):
