@@ -1,4 +1,4 @@
-# Theriax
+# Theriax - Medical assistant
 
 Full-stack healthcare recommendation prototype:
 - `Backend11.py`: main FastAPI backend (auth, dashboard, logs, retraining)
