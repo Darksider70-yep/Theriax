@@ -1,5 +1,7 @@
 # Theriax - Medical assistant
 
+Theriax is an intelligent medical assistant designed to support doctors in recommending the most effective and affordable medicines for patients. The system combines advanced machine learning with a secure backend to deliver fast, reliable, and cost-optimized treatment suggestions.
+
 Full-stack healthcare recommendation prototype:
 - `Backend11.py`: main FastAPI backend (auth, dashboard, logs, retraining)
 - `evolve/evolve_api.py`: AI prediction microservice
